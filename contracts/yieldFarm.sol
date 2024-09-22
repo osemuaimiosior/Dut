@@ -4,6 +4,16 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract YieldFarming is ERC20{
+    address public immutable owner ;
+
+    constructor() ERC20("Holi", "HL") {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner {
+        require(msg.sender == owner, "Unauthorized");
+    _;
+    }
 
     function addPool(uint maxAmount, uint yieldPercent, uint minDeposit, uint rewardTime) public {}
 
@@ -26,3 +36,4 @@ contract YieldFarming is ERC20{
     function checkWhaleWallets() public view returns (address[] memory) {}
 
 }
+
