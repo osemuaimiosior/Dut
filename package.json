@@ -13,9 +13,6 @@
     "@openzeppelin/contracts": "^5.0.2",
     "@uniswap/sdk-core": "^5.4.0",
     "@uniswap/v3-sdk": "^3.14.0",
-<<<<<<< HEAD
-    "dut": "file:"
-=======
     "chai": "4.3.7",
     "dotenv": "^16.4.5",
     "dut": "file:"
@@ -23,6 +20,5 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "hardhat": "^2.22.10"
->>>>>>> ebcbe944603a85ee5140216810795caeed0350e2
   }
 }

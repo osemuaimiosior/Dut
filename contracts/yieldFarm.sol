@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract YieldFarming is ERC20{
+contract yieldFarm is ERC20{
     address public immutable owner ;
 
     constructor() ERC20("Holi", "HL") {
@@ -15,25 +15,76 @@ contract YieldFarming is ERC20{
     _;
     }
 
-    function addPool(uint maxAmount, uint yieldPercent, uint minDeposit, uint rewardTime) public {}
+    struct poolDetails {
+        uint _maxAmount; 
+        uint _yieldPercent; 
+        uint _minDeposit; 
+        uint _rewardTime; //Number of days to maturity
+        uint _currentAmount;
+    }
 
-    function depositWei(uint poolId) public payable {}
+    struct userDeposit {
+        uint _poolId;
+        uint timestamp;
+        uint _amount;
+    }
 
-    function withdrawWei(uint poolId, uint amount) public {}
+    uint Id = 0;
 
-    function claimRewards(uint poolId) public {}
+    mapping(uint => poolDetails) listOfPools;
+    mapping(uint => mapping(address => userDeposit)) depositLogs;
 
-    function checkPoolDetails(uint poolId) public view returns (uint, uint, uint, uint) {}
+    function addPool(uint maxAmount, uint yieldPercent, uint minDeposit, uint rewardTime) public onlyOwner {
+        poolDetails memory newPool = poolDetails(
+            maxAmount,
+            yieldPercent,
+            minDeposit, 
+            rewardTime,
+            0
+        );
+        listOfPools[Id] = newPool;
+        Id += 1;
+    }
 
-    function checkUserDeposits(address user) public view returns (uint, uint) {}
+    function depositWei(uint poolId) public payable {
+        poolDetails memory depositingPool = listOfPools[poolId];
 
-    function checkUserDepositInPool(uint poolId) public view returns (address[] memory, uint[] memory) {}
+        require(msg.value >= depositingPool._minDeposit, "Add more wei to depositing amount");
+        require((poolId <= Id && poolId >= 0), "Invalid Pool");
+        require(depositLogs[poolId][msg.sender]._poolId != poolId , "Unathorized");
 
-    function checkClaimableRewards(uint poolId) public view returns (uint) {}
+        depositingPool._currentAmount += msg.value;
+        depositLogs[poolId][msg.sender] = userDeposit(poolId, block.timestamp, msg.value);
+    }
 
-    function checkRemainingCapacity(uint poolId) public view returns (uint) {}
+    function withdrawWei(uint poolId, uint amount) public payable{
+        require(depositLogs[poolId][msg.sender]._amount >= amount, "Invalid transaction");
 
-    function checkWhaleWallets() public view returns (address[] memory) {}
+        depositLogs[poolId][msg.sender]._amount -= amount;
+         //(bool sent, bytes memory data) = msg.sender.call{value: amount}("");
+         (bool sent, ) = msg.sender.call{value: amount}("");
+        require(sent, "Failed to send Ether");
+    }
 
+    function claimRewards(uint poolId) public {
+         // Number of seconds in a day
+        uint256 secondsInDay = 86400;
+        uint depositDate = depositLogs[poolId][msg.sender].timestamp;
+        uint daysCount = listOfPools[poolId]._rewardTime;
+
+        uint timePeriodInDays = (depositDate - block.timestamp)/secondsInDay;
+        require(timePeriodInDays > 0, "Invalid trasaction");
+
+        uint yieldClaims = (timePeriodInDays % daysCount) * listOfPools[poolId]._yieldPercent;
+        uint claims = yieldClaims * depositLogs[poolId][msg.sender]._amount;
+
+        (bool sent, ) = msg.sender.call{value: claims}("");
+        require(sent, "Failed to send Ether");
+    }
+
+    function checkPoolDetails(uint poolId) public view returns (uint, uint, uint, uint) {
+        poolDetails memory result = listOfPools[poolId];
+        return (result._maxAmount, result._yieldPercent, result._minDeposit, result._rewardTime);
+    }
 }
 
