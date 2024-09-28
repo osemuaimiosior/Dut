@@ -30,6 +30,7 @@ contract yieldFarm is ERC20 {
     }
 
     uint Id = 1;
+    address[] whaleUsers;
 
     mapping(uint => poolDetails) listOfPools;
     mapping(uint => mapping(address => userDeposit)) depositLogs;
@@ -38,6 +39,7 @@ contract yieldFarm is ERC20 {
     mapping(uint => address[]) public arrayOfPoolDepositors;
     mapping(address => uint) public userTotalDeposit;
     mapping(address => uint) userTotalClaims;
+   
 
     function addPool(uint maxAmount, uint yieldPercent, uint minDeposit, uint rewardTime) public onlyOwner {
         poolDetails memory newPool = poolDetails(
@@ -56,8 +58,20 @@ contract yieldFarm is ERC20 {
         poolDetails memory depositingPool = listOfPools[poolId];
 
         require(amount >= depositingPool._minDeposit, "Add more wei to depositing amount");
+        require(amount <= depositingPool._maxAmount, "Reduce wei deposit");
         require((poolId <= Id && poolId >= 0), "Invalid Pool");
         require(depositLogs[poolId][msg.sender]._poolId != poolId , "Unathorized");
+
+        if(amount > 10000){
+            whaleUsers.push(msg.sender);
+
+            arrayOfPoolDepositors[poolId].push(msg.sender);
+            listOfPools[poolId]._currentAmount += amount;
+            depositLogs[poolId][msg.sender] = userDeposit(poolId, block.timestamp, amount);
+        
+            userTotalDeposit[msg.sender] += amount;
+            usersPool[msg.sender].push(poolId);
+        }
 
         arrayOfPoolDepositors[poolId].push(msg.sender);
         listOfPools[poolId]._currentAmount += amount;
@@ -71,6 +85,7 @@ contract yieldFarm is ERC20 {
         require(depositLogs[poolId][msg.sender]._amount >= amount, "Invalid transaction");
 
         depositLogs[poolId][msg.sender]._amount -= amount;
+        listOfPools[poolId]._currentAmount -= amount;
          //(bool sent, bytes memory data) = msg.sender.call{value: amount}("");
          (bool sent, ) = msg.sender.call{value: amount}("");
         require(sent, "Failed to send Ether");
@@ -134,10 +149,22 @@ contract yieldFarm is ERC20 {
         return (depositors, amounts);
     }
 
-    function checkClaimableRewards(uint poolId) public view returns (uint) {}
+    function checkClaimableRewards(uint poolId) public view returns (uint) {
+        poolDetails memory poolInfo = listOfPools[poolId];
+        uint minClaims = poolInfo._minDeposit * poolInfo._yieldPercent;
+        return minClaims;
+    }
 
-    function checkRemainingCapacity(uint poolId) public view returns (uint) {}
+    function checkRemainingCapacity(uint poolId) public view returns (uint) {
+        poolDetails memory poolInfo = listOfPools[poolId];
+        uint capacity = poolInfo._currentAmount;
+        return capacity;
+    }
 
-    function checkWhaleWallets() public view returns (address[] memory) {}
+    function checkWhaleWallets() public view returns (address[] memory) {
+        return whaleUsers;
+    }
 
 }
+
+
